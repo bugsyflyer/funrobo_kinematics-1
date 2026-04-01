@@ -86,6 +86,94 @@ class CubicPolynomial():
         return t, X
 
 
+class QuinticPolynomial():
+    """
+    Cubic interpolation with position and velocity boundary constraints.
+    """
+
+    def __init__(self, ndof=None):
+        """
+        Initialize the trajectory generator.
+        """
+        self.ndof = ndof
+
+    
+    def solve(self, q0, qf, qd0, qdf, qdd0, qddf, T):
+        """
+        Compute cubic polynomial coefficients for each DOF.
+
+        Parameters
+        ----------
+        q0 : array-like, shape (ndof,)
+            Initial positions.
+        qf : array-like, shape (ndof,)
+            Final positions.
+        qd0 : array-like or None, shape (ndof,)
+            Initial velocities. If None, assumed zero.
+        qdf : array-like or None, shape (ndof,)
+            Final velocities. If None, assumed zero.
+        qdd0 : array-like or None, shape (ndof,)
+            Initial accelerations. If None, assumed zero.
+        qddf : array-like or None, shape (ndof,)
+            Final accelerations. If None, assumed zero.
+        T : float
+            Total trajectory duration.
+        """
+        t0, tf = 0, T
+        q0 = np.asarray(q0, dtype=float)
+        qf = np.asarray(qf, dtype=float)
+        qd0 = np.zeros_like(q0) if qd0 is None else np.asarray(qd0, dtype=float)
+        qdf = np.zeros_like(q0) if qdf is None else np.asarray(qdf, dtype=float)
+        qdd0 = np.zeros_like(q0) if qdd0 is None else np.asarray(qdd0, dtype=float)
+        qddf = np.zeros_like(q0) if qddf is None else np.asarray(qddf, dtype=float)
+        
+        A = np.array(
+                [[1, t0, t0**2, t0**3, t0**4, t0**5],
+                 [0, 1, 2*t0, 3*t0**2, 4*t0**3, 5*t0**4],
+                 [0, 0, 2, 6*t0, 12*t0**2, 20*t0**3],
+                 [1, tf, tf**2, tf**3, tf**4, tf**5],
+                 [0, 1, 2*tf, 3*tf**2, 4*tf**3, 5*tf**4]
+                 [0, 0, 2, 6*tf, 12*tf**2, 20*tf**3],
+                ])
+
+        b = np.vstack([
+            q0,
+            qd0,
+            qdd0,
+            qf,
+            qdf,
+            qddf
+        ])
+        self.coeff = np.linalg.solve(A, b)
+        
+
+    def generate(self, t0=0, tf=0, nsteps=100):
+        """
+        Generate position, velocity, and acceleration trajectories.
+
+        Parameters
+        ----------
+        t0 : float
+            Start time.
+        tf : float
+            End time.
+        nsteps : int
+            Number of time samples.
+        """
+        t = np.linspace(t0, tf, nsteps)
+        X = np.zeros((self.ndof, 3, len(t)))
+        for i in range(self.ndof): # iterate through all DOFs
+            c = self.coeff[:, i]
+
+            q = c[0] + c[1] * t + c[2] * t**2 + c[3] * t**3
+            qd = c[1] + 2 * c[2] * t + 3 * c[3] * t**2
+            qdd = 2 * c[2] + 6 * c[3] * t
+
+            X[i, 0, :] = q      # position
+            X[i, 1, :] = qd     # velocity
+            X[i, 2, :] = qdd    # acceleration
+
+        return t, X
 
 
 def main():
