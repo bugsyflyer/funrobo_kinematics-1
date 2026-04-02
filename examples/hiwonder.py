@@ -7,7 +7,7 @@ import numpy as np
 import funrobo_kinematics.core.utils as ut
 from funrobo_kinematics.core.visualizer import Visualizer, RobotSim
 from funrobo_kinematics.core.arm_models import FiveDOFRobotTemplate
-from traj_gen import CubicPolynomial
+from traj_gen import CubicPolynomial, QuinticPolynomial, Trapezoid
 
 
 
@@ -68,7 +68,7 @@ class FiveDOFRobot(FiveDOFRobotTemplate):
 if __name__ == "__main__":
     
     robot_model = FiveDOFRobot()
-    traj_model = CubicPolynomial()
+    traj_model = Trapezoid()
     
     robot = RobotSim(robot_model=robot_model, traj_model=traj_model)
     viz = Visualizer(robot=robot)

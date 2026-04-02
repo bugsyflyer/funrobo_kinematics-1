@@ -165,9 +165,9 @@ class QuinticPolynomial():
         for i in range(self.ndof): # iterate through all DOFs
             c = self.coeff[:, i]
 
-            q = c[0] + c[1] * t + c[2] * t**2 + c[3] * t**3
-            qd = c[1] + 2 * c[2] * t + 3 * c[3] * t**2
-            qdd = 2 * c[2] + 6 * c[3] * t
+            q = c[0] + c[1] * t + c[2] * t**2 + c[3] * t**3 + c[4] * t**4 + c[5] * t**5
+            qd = c[1] + 2 * c[2] * t + 3 * c[3] * t**2 + 4 * c[4] * t**3 + 5 * c[5] * t**4
+            qdd = 2 * c[2] + 6 * c[3] * t + 12 * c[4] * t**2 + 20 * c[5] * t**3
 
             X[i, 0, :] = q      # position
             X[i, 1, :] = qd     # velocity
@@ -244,30 +244,40 @@ class Trapezoid():
             alpha = self.alpha[i]
             tf = self.tf
 
+            qlist = []
+            qdlist = []
+            qddlist = []
+
             for j, t_j in enumerate(t):
                 #acc phase
                 if t_j < tb:
                     q = q0 + 0.5 * alpha * t_j**2
                     qd = alpha * t_j
                     qdd = alpha
+                #const phase
                 elif t_j <= (tf-tb):
                     q = 0.5*(qf+q0-(V*tf)) + (V*t_j)
                     qd = V
                     qdd = 0
+                #dec phase
                 elif t_j <= tf:
                     q = qf - 0.5*alpha*tf**2 + alpha*tf*t_j - 0.5*alpha*t_j**2
                     qd = alpha*(tf - t_j)
                     qdd = -alpha
-                X[i, 0, :] = q      # position
-                X[i, 1, :] = qd     # velocity
-                X[i, 2, :] = qdd    # acceleration
+                
+                qlist.append(q)
+                qdlist.append(qd)
+                qddlist.append(qdd)
+            X[i, 0, :] = qlist      # position
+            X[i, 1, :] = qdlist     # velocity
+            X[i, 2, :] = qddlist    # acceleration
 
         return t, X
 
 
 def main():
     ndof = 2
-    method = QuinticPolynomial(ndof=ndof)
+    method = Trapezoid(ndof=ndof)
     mode = "joint"
 
     # --------------------------------------------------------
@@ -278,7 +288,7 @@ def main():
     #                                     mode=mode,
     #                                     ndof=ndof)
     
-    # traj.solve(q0=-30, qf=60, T=1)
+    # traj.solve(q0=-60, qf=60, T=1)
     # traj.generate(nsteps=20)
 
     # --------------------------------------------------------
